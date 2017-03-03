@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const should = chai.should();
 
 const {DATABASE_URL} = require('../config');
-const {BlogPost} = require('../models');
+const {BlogPost, User} = require('../models');
 const {closeServer, runServer, app} = require('../server');
 const {TEST_DATABASE_URL} = require('../config');
 
@@ -50,6 +50,31 @@ function seedBlogPostData() {
   return BlogPost.insertMany(seedData);
 }
 
+function seedUserInfo() {
+  console.log('seeding user info');
+  User.create({
+    username: faker.internet.userName(),
+    password: "$2a$10$2yZuzXT21auEqkw8g4sEBe/K.RwQfuvJMaJxy8AvMGM1trwvSQPkW", //test-password
+    firstName: faker.name.firstName(),
+    lastName: faker.name.lastName()
+  });
+}
+
+const seedUser = {
+  James: {
+    username: "JamesGuth",
+    password: "guth",
+    firstName: "James",
+    lastName: "Guthrie"
+  },
+  Scarlett: {
+    username: "ScarMar",
+    password: "scar",
+    firstName: "Scralett",
+    lastName: "Mar"
+  }
+}
+
 
 describe('blog posts API resource', function() {
 
@@ -59,6 +84,9 @@ describe('blog posts API resource', function() {
 
   beforeEach(function() {
     return seedBlogPostData();
+  });
+  beforeEach(function() {
+    return seedUserInfo();
   });
 
   afterEach(function() {
@@ -76,7 +104,7 @@ describe('blog posts API resource', function() {
   // on proving something small
   describe('GET endpoint', function() {
 
-    it('should return all existing posts', function() {
+    it('should return all existing posts with correct login', function() {
       // strategy:
       //    1. get back all posts returned by by GET request to `/posts`
       //    2. prove res has right status, data type
@@ -85,6 +113,7 @@ describe('blog posts API resource', function() {
       let res;
       return chai.request(app)
         .get('/posts')
+        .auth('username', 'password')
         .then(_res => {
           res = _res;
           res.should.have.status(200);
@@ -100,12 +129,13 @@ describe('blog posts API resource', function() {
         });
     });
 
-    it('should return posts with right fields', function() {
+    it('should return posts with right fields when authorized', function() {
       // Strategy: Get back all posts, and ensure they have expected keys
 
       let resPost;
       return chai.request(app)
         .get('/posts')
+        .auth('req.user.userName', 'req.user.password')
         .then(function(res) {
 
           res.should.have.status(200);
@@ -148,6 +178,7 @@ describe('blog posts API resource', function() {
 
       return chai.request(app)
         .post('/posts')
+        .auth('req.user.userName', 'req.user.password')
         .send(newPost)
         .then(function(res) {
           res.should.have.status(201);
@@ -197,6 +228,7 @@ describe('blog posts API resource', function() {
 
           return chai.request(app)
             .put(`/posts/${post.id}`)
+            .auth('req.user.userName', 'req.user.password')
             .send(updateData);
         })
         .then(res => {
@@ -234,7 +266,7 @@ describe('blog posts API resource', function() {
         .exec()
         .then(_post => {
           post = _post;
-          return chai.request(app).delete(`/posts/${post.id}`);
+          return chai.request(app).delete(`/posts/${post.id}`).auth('req.user.userName', 'req.user.password');
         })
         .then(res => {
           res.should.have.status(204);
