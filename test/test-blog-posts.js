@@ -175,7 +175,7 @@ describe('blog posts API resource', function() {
           // cause Mongo should have created id on insertion
           res.body.id.should.not.be.null;
           res.body.author.should.equal(
-            `${newPost.author.firstName} ${newPost.author.lastName}`);
+            `${seedUser.James.firstName} ${seedUser.James.lastName}`);
           res.body.content.should.equal(newPost.content);
           return BlogPost.findById(res.body.id).exec();
         })
@@ -199,10 +199,6 @@ describe('blog posts API resource', function() {
       const updateData = {
         title: 'cats cats cats',
         content: 'dogs dogs dogs',
-        author: {
-          firstName: 'foo',
-          lastName: 'bar'
-        }
       };
 
       return BlogPost
