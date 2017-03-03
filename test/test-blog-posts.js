@@ -38,10 +38,10 @@ function seedBlogPostData() {
   const seedData = [];
   for (let i=1; i<=10; i++) {
     seedData.push({
-      author: {
-        firstName: faker.name.firstName(),
-        lastName: faker.name.lastName()
-      },
+      // author: {
+      //   firstName: faker.name.firstName(),
+      //   lastName: faker.name.lastName()
+      // },
       title: faker.lorem.sentence(),
       content: faker.lorem.text()
     });
@@ -52,29 +52,20 @@ function seedBlogPostData() {
 
 function seedUserInfo() {
   console.log('seeding user info');
-  User.create({
-    username: faker.internet.userName(),
-    password: "$2a$10$2yZuzXT21auEqkw8g4sEBe/K.RwQfuvJMaJxy8AvMGM1trwvSQPkW", //test-password
-    firstName: faker.name.firstName(),
-    lastName: faker.name.lastName()
-  });
+  return User.create(seedUser.James);
 }
+
 
 const seedUser = {
   James: {
-    username: "JamesGuth",
-    password: "guth",
-    firstName: "James",
-    lastName: "Guthrie"
-  },
-  Scarlett: {
-    username: "ScarMar",
-    password: "scar",
-    firstName: "Scralett",
-    lastName: "Mar"
+      username: faker.internet.userName(),
+      actualPass: 'test',
+      password: "$2a$10$tdNFlbQHOObYpCVfefyU8.ZBDq6JlHXriuv7xsM/GkFDgzK7b1fFy", //test
+      firstName: faker.name.firstName(),
+      lastName: faker.name.lastName()
   }
 }
-
+console.log("LOOOOOOOKKKK ATTTT MEEEEEE ===== " +  seedUser.James.password);
 
 describe('blog posts API resource', function() {
 
@@ -83,12 +74,8 @@ describe('blog posts API resource', function() {
   });
 
   beforeEach(function() {
-    return seedBlogPostData();
+    return Promise.all([seedBlogPostData(), seedUserInfo()]);
   });
-  beforeEach(function() {
-    return seedUserInfo();
-  });
-
   afterEach(function() {
     // tear down database so we ensure no state from this test
     // effects any coming after.
@@ -104,7 +91,7 @@ describe('blog posts API resource', function() {
   // on proving something small
   describe('GET endpoint', function() {
 
-    it('should return all existing posts with correct login', function() {
+    it('should return all existing posts', function() {
       // strategy:
       //    1. get back all posts returned by by GET request to `/posts`
       //    2. prove res has right status, data type
@@ -113,7 +100,6 @@ describe('blog posts API resource', function() {
       let res;
       return chai.request(app)
         .get('/posts')
-        .auth('username', 'password')
         .then(_res => {
           res = _res;
           res.should.have.status(200);
@@ -129,13 +115,12 @@ describe('blog posts API resource', function() {
         });
     });
 
-    it('should return posts with right fields when authorized', function() {
+    it('should return posts with right fields', function() {
       // Strategy: Get back all posts, and ensure they have expected keys
 
       let resPost;
       return chai.request(app)
         .get('/posts')
-        .auth('req.user.userName', 'req.user.password')
         .then(function(res) {
 
           res.should.have.status(200);
@@ -166,20 +151,20 @@ describe('blog posts API resource', function() {
     // right keys, and that `id` is there (which means
     // the data was inserted into db)
     it('should add a new blog post', function() {
-
+      const testName = seedUser.James;
       const newPost = {
           title: faker.lorem.sentence(),
           author: {
-            firstName: faker.name.firstName(),
-            lastName: faker.name.lastName(),
+            firstName: testName.firstName,
+            lastName: testName.lastName
           },
           content: faker.lorem.text()
       };
 
       return chai.request(app)
         .post('/posts')
-        .auth('req.user.userName', 'req.user.password')
         .send(newPost)
+        .auth(testName.username, testName.actualPass)
         .then(function(res) {
           res.should.have.status(201);
           res.should.be.json;
@@ -228,7 +213,6 @@ describe('blog posts API resource', function() {
 
           return chai.request(app)
             .put(`/posts/${post.id}`)
-            .auth('req.user.userName', 'req.user.password')
             .send(updateData);
         })
         .then(res => {
@@ -266,7 +250,7 @@ describe('blog posts API resource', function() {
         .exec()
         .then(_post => {
           post = _post;
-          return chai.request(app).delete(`/posts/${post.id}`).auth('req.user.userName', 'req.user.password');
+          return chai.request(app).delete(`/posts/${post.id}`);
         })
         .then(res => {
           res.should.have.status(204);
