@@ -65,7 +65,6 @@ const seedUser = {
       lastName: faker.name.lastName()
   }
 }
-console.log("LOOOOOOOKKKK ATTTT MEEEEEE ===== " +  seedUser.James.password);
 
 describe('blog posts API resource', function() {
 
@@ -85,6 +84,40 @@ describe('blog posts API resource', function() {
   after(function() {
     return closeServer();
   });
+
+
+//Checking for user in db is correct
+  describe('Checking for new user when POSTed', function() {
+    it('should add user to database', function() {
+      const newUser = {
+        username: "JoeBlow",
+        password: "test",
+        firstName: "Joe",
+        lastName: "Blow"
+      };
+      return chai.request(app) 
+        .post('/users')
+        .send(newUser)
+        .then(res => {
+          console.log("Look here::::::: " + res);
+          res.should.have.status(201);
+          res.body.username.should.equal(newUser.username);
+          res.body.firstName.should.equal(newUser.firstName);
+          res.body.lastName.should.equal(newUser.lastName);
+          res.body.should.not.have.property('password');
+          return User.find({username: "JoeBlow"}).exec();
+        })
+        .then(item => {
+          console.log(item);
+          should.exist(item);
+          item[0].should.have.property('username');
+          item[0].username.should.equal(newUser.username);
+        });
+    });
+  });
+
+
+
 
   // note the use of nested `describe` blocks.
   // this allows us to make clearer, more discrete tests that focus
