@@ -38,10 +38,10 @@ function seedBlogPostData() {
   const seedData = [];
   for (let i=1; i<=10; i++) {
     seedData.push({
-      // author: {
-      //   firstName: faker.name.firstName(),
-      //   lastName: faker.name.lastName()
-      // },
+      author: {
+        firstName: seedUser.James.firstName,
+        lastName: seedUser.James.lastName,
+      },
       title: faker.lorem.sentence(),
       content: faker.lorem.text()
     });
@@ -175,7 +175,7 @@ describe('blog posts API resource', function() {
           // cause Mongo should have created id on insertion
           res.body.id.should.not.be.null;
           res.body.author.should.equal(
-            `${seedUser.James.firstName} ${seedUser.James.lastName}`);
+            `${newPost.author.firstName} ${newPost.author.lastName}`);
           res.body.content.should.equal(newPost.content);
           return BlogPost.findById(res.body.id).exec();
         })
@@ -196,6 +196,7 @@ describe('blog posts API resource', function() {
     //  3. Prove post returned by request contains data we sent
     //  4. Prove post in db is correctly updated
     it('should update fields you send over', function() {
+      const testName = seedUser.James;
       const updateData = {
         title: 'cats cats cats',
         content: 'dogs dogs dogs',
@@ -209,7 +210,8 @@ describe('blog posts API resource', function() {
 
           return chai.request(app)
             .put(`/posts/${post.id}`)
-            .send(updateData);
+            .send(updateData)
+            .auth(testName.username, testName.actualPass);
         })
         .then(res => {
           res.should.have.status(201);
@@ -217,7 +219,7 @@ describe('blog posts API resource', function() {
           res.body.should.be.a('object');
           res.body.title.should.equal(updateData.title);
           res.body.author.should.equal(
-            `${updateData.author.firstName} ${updateData.author.lastName}`);
+            `${testName.firstName} ${testName.lastName}`);
           res.body.content.should.equal(updateData.content);
 
           return BlogPost.findById(res.body.id).exec();
@@ -225,8 +227,8 @@ describe('blog posts API resource', function() {
         .then(post => {
           post.title.should.equal(updateData.title);
           post.content.should.equal(updateData.content);
-          post.author.firstName.should.equal(updateData.author.firstName);
-          post.author.lastName.should.equal(updateData.author.lastName);
+          post.author.firstName.should.equal(testName.firstName);
+          post.author.lastName.should.equal(testName.lastName);
         });
     });
   });
@@ -240,13 +242,15 @@ describe('blog posts API resource', function() {
     it('should delete a post by id', function() {
 
       let post;
+      const testName = seedUser.James;
 
       return BlogPost
+
         .findOne()
         .exec()
         .then(_post => {
           post = _post;
-          return chai.request(app).delete(`/posts/${post.id}`);
+          return chai.request(app).delete(`/posts/${post.id}`).auth(testName.username, testName.actualPass);
         })
         .then(res => {
           res.should.have.status(204);
